@@ -12,8 +12,10 @@ import json
 import shlex
 import subprocess
 import threading
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
+import AppKit
 import rumps
 
 import about
@@ -175,6 +177,36 @@ def notify(title: str, subtitle: str, message: str) -> None:
 
 def open_url(url: str) -> None:
     subprocess.run(["open", url], check=False)
+
+
+def show_image_popup(title: str, message: str, image_path: Path) -> None:
+    """用原生 NSAlert 弹一个带图片的窗口——给收款二维码这类"点了就该看见图"的场景用。
+
+    没有用 rumps.alert（它不支持塞图片），直接用 rumps 本来就依赖的 pyobjc
+    AppKit 绑定搭一个最小的弹窗：一个 NSAlert 挂一个 NSImageView 当附件视图。
+    """
+    if not image_path.exists():
+        rumps.alert(title=title, message=f"{message}\n\n（还没放图片：{image_path}）")
+        return
+    image = AppKit.NSImage.alloc().initWithContentsOfFile_(str(image_path))
+    if image is None:
+        rumps.alert(title=title, message="图片读取失败，文件可能损坏。")
+        return
+
+    size = image.size()
+    longest_side = max(size.width, size.height) or 1.0
+    scale = min(1.0, 320.0 / longest_side)
+    frame = ((0.0, 0.0), (size.width * scale, size.height * scale))
+
+    image_view = AppKit.NSImageView.alloc().initWithFrame_(frame)
+    image_view.setImage_(image)
+
+    alert = AppKit.NSAlert.alloc().init()
+    alert.setMessageText_(title)
+    alert.setInformativeText_(message)
+    alert.setAccessoryView_(image_view)
+    alert.addButtonWithTitle_("关闭")
+    alert.runModal()
 
 
 class FreeRouterLauncher(rumps.App):
@@ -497,17 +529,24 @@ class FreeRouterLauncher(rumps.App):
         links = [
             ("📝 博客", about.BLOG_URL),
             ("🍪 更多免费模型分享", about.MORE_MODELS_URL),
-            ("☕ 请我喝杯咖啡", about.COFFEE_URL),
             ("GitHub 仓库", about.GITHUB_URL),
         ]
         visible = [(label, url) for label, url in links if url]
-        if visible:
+        show_coffee = about.COFFEE_QR_PATH.exists()
+        if visible or show_coffee:
             items.append(None)
             items.extend(
                 rumps.MenuItem(label, callback=lambda _s, u=url: open_url(u))
                 for label, url in visible
             )
+            if show_coffee:
+                items.append(
+                    rumps.MenuItem("☕ 请我喝杯咖啡", callback=self.show_coffee_qr)
+                )
         return items
+
+    def show_coffee_qr(self, _sender: object) -> None:
+        show_image_popup("请我喝杯咖啡 ☕", "谢谢支持！", about.COFFEE_QR_PATH)
 
     def _run_update_check(self, *, announce_if_current: bool) -> None:
         # 只读一个公开的 GitHub API，跟 docker 操作没有资源冲突，不走 _busy 那把

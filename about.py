@@ -1,8 +1,8 @@
 """个人链接 + 版本号 + 检查更新，给"关于"菜单用。
 
-链接先留 None——真实的博客/赞助链接一填进来，对应的菜单项就会自动出现，
-不用改 app.py。检查更新用的是 GitHub Releases 的 tag，跟 pyproject.toml 里
-的 version 做比较；公开仓库，不需要 token。
+链接留 None 的话对应菜单项不会出现——不用为了没填的东西改 app.py。检查更新用
+的是 GitHub Releases 的 tag，跟 pyproject.toml 里的 version 做比较；公开仓库，
+不需要 token。
 """
 
 from __future__ import annotations
@@ -21,10 +21,13 @@ GITHUB_URL: Final = f"https://github.com/{GITHUB_REPO}"
 RELEASES_API: Final = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 REQUEST_TIMEOUT: Final = 8
 
-# 待填：加上真实链接，菜单项就会自动出现。
-BLOG_URL: str | None = None
-COFFEE_URL: str | None = None
-MORE_MODELS_URL: str | None = None
+BLOG_URL: str | None = "https://blog.markwave.top"
+MORE_MODELS_URL: str | None = "https://blog.markwave.top/docs/skills-tools/model-pricing/"
+
+# 赞助是一张收款二维码图片，不是链接——点菜单项会弹一个原生窗口把它显示出来
+# （见 app.py 的 show_image_popup），不是拿浏览器打开。文件还没放进来之前，
+# .exists() 是 False，菜单里就先不出现这一项，放进去后自动出现，不用改代码。
+COFFEE_QR_PATH: Final = LAUNCHER_DIR / "assets" / "coffee_qr.png"
 
 
 def local_version() -> str:

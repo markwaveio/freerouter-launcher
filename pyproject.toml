@@ -1,6 +1,6 @@
 [project]
 name = "freerouter-launcher"
-version = "0.2.0"
+version = "0.3.0"
 description = "把 FreeRouter 的 docker compose 服务包成一个可双击开关、管理免费模型的 macOS 菜单栏小工具"
 requires-python = ">=3.11"
 dependencies = [
