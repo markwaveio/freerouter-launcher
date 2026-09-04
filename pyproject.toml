@@ -1,0 +1,13 @@
+[project]
+name = "freerouter-launcher"
+version = "0.2.0"
+description = "把 FreeRouter 的 docker compose 服务包成一个可双击开关、管理免费模型的 macOS 菜单栏小工具"
+requires-python = ">=3.11"
+dependencies = [
+    "rumps>=0.4.0",
+    "PyYAML>=6.0,<7",
+]
+
+[tool.uv]
+# 这不是一个要发布的 Python 包，只是几个脚本 + 一个 venv，不需要构建后端。
+package = false
