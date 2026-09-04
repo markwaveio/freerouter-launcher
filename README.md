@@ -1,5 +1,7 @@
 # FreeRouter Launcher（测试项目）
 
+代码开源在 [github.com/markwaveio/freerouter-launcher](https://github.com/markwaveio/freerouter-launcher)。
+
 验证一件事：能不能把 [FreeRouter](../FreeRouter) 那套 docker compose 服务包成
 一个双击就能开关的 macOS 应用，不用记 `make up` / `make down`、不用开终端。
 
@@ -101,8 +103,38 @@ FreeRouter 的 `litellm` 和 `refresher` 容器在创建时就把 `.env` 的内�
 了 `.env` 时才会发生；平时没改任何配置，`up -d` 对已经在跑的容器是完全无操作
 的。
 
+### 关于 & 检查更新
+
+版本号、个人链接（博客 / 更多免费模型分享 / 请我喝咖啡 / GitHub 仓库）都在
+[about.py](about.py) 里。三个个人链接目前是 `None`——占位，等填了真实
+URL，对应的菜单项才会出现；GitHub 仓库链接是常驻的，因为"检查更新"本身就靠它。
+
+版本源是 GitHub Releases：仓库是公开的
+[markwaveio/freerouter-launcher](https://github.com/markwaveio/freerouter-launcher)，
+"检查更新"请求它的 `releases/latest` API（公开仓库不需要 token），跟
+`pyproject.toml` 里的 `version` 比大小。启动时会自动查一次，但只有发现新版本
+才弹通知——已经是最新版本不会打扰你；手动点"检查更新"则两种情况都会弹通知。
+这个检查是只读的 HTTP 请求，跟 docker 操作互不冲突，所以不受"同时只能有一个
+操作在跑"那把锁限制，不会因为你手快点了别的按钮而被卡住。
+
+"立即更新"（发现新版本后菜单里才会出现）做的是 `git pull --ff-only` +
+`uv sync`，成功后自动退出当前实例、重新打开 `.app`（如果还没打包过 `.app`，
+就退回直接 `uv run python app.py`）。用 `--ff-only` 是故意的：如果你自己在这
+个项目里手改过代码导致历史分叉，它会直接失败并把 git 的报错弹给你，而不是悄
+悄生成一个 merge commit覆盖你的修改——这时候需要你自己看一眼再决定怎么处理。
+
+发新版本的流程（目前没做自动化，先手动）：改代码 → 改
+`pyproject.toml` 里的 `version` → 提交 → `git tag vX.Y.Z && git push --tags`
+→ `gh release create vX.Y.Z --notes "..."`。
+
 ## 已知限制（毕竟是测试项目）
 
+- **"立即更新"重启时会有一两秒两个实例同时在跑**：新实例先被拉起，旧实例才退
+  出，中间有个短暂窗口菜单栏可能闪一下两个图标，会自己消失，不影响功能。
+- **"立即更新"要求这个目录本身干净**：如果你直接在这几个文件里手改代码（这
+  本来就是鼓励的，见上面"怎么跑起来"），改完又没提交，`git pull --ff-only`
+  会失败并弹出错误——这是故意的，好过悄悄覆盖你的修改。提交或者
+  `git stash` 一下再点"立即更新"。
 - **加了 Key 之后模型列表不会马上更新**：`docker compose up -d` 返回之后，容
   器还得先过健康检查、`refresher` 再跑一轮发现 + 探测，新平台的模型才会出现
   在"免费模型列表"里，一般是几十秒到一两分钟。心急的话等一下再点"刷新列表显
